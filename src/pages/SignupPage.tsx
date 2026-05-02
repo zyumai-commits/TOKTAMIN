@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import { Eye, EyeOff, CheckCircle2, Mail } from 'lucide-react'
+import { isSupabaseConfigured } from '@/lib/supabase'
+import { Eye, EyeOff, CheckCircle2, Mail, AlertTriangle } from 'lucide-react'
 
 export default function SignupPage() {
   const { signUp } = useAuth()
@@ -19,32 +20,55 @@ export default function SignupPage() {
     e.preventDefault()
     setError('')
 
+    if (!isSupabaseConfigured) {
+      setError('서버 연결이 설정되지 않았습니다. Vercel 환경 변수(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)를 확인해 주세요.')
+      return
+    }
+
     if (password.length < 8) {
       setError('비밀번호는 8자 이상이어야 합니다.')
       return
     }
 
     setLoading(true)
-    const { data, error } = await signUp(email, password, fullName)
-    setLoading(false)
 
-    if (error) {
-      if (error.message.includes('already registered') || error.message.includes('User already registered')) {
-        setError('이미 사용 중인 이메일입니다.')
-      } else {
-        setError(error.message ?? '회원가입에 실패했습니다. 다시 시도해 주세요.')
+    try {
+      const { data, error } = await signUp(email, password, fullName)
+
+      if (error) {
+        const msg = error.message ?? ''
+        if (msg.includes('already registered') || msg.includes('User already registered')) {
+          setError('이미 사용 중인 이메일입니다. 로그인을 시도해 보세요.')
+        } else if (msg.includes('invalid') && msg.includes('email')) {
+          setError('올바른 이메일 형식이 아닙니다.')
+        } else if (msg.includes('Password') || msg.includes('password')) {
+          setError('비밀번호가 보안 기준을 충족하지 않습니다. (특수문자 포함 8자 이상)')
+        } else if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed')) {
+          setError('서버에 연결할 수 없습니다. Supabase 프로젝트가 활성화 상태인지 확인해 주세요.')
+        } else if (msg) {
+          // Supabase 실제 에러 메시지 그대로 표시 (디버깅용)
+          setError(`가입 오류: ${msg}`)
+        } else {
+          setError('회원가입에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+        }
+        return
       }
-      return
-    }
 
-    // 세션이 있으면 바로 온보딩으로 (이메일 인증 비활성화 상태)
-    if (data?.session) {
-      navigate('/onboarding')
-      return
-    }
+      // 세션이 있으면 바로 온보딩으로 (이메일 인증 비활성화 상태)
+      if (data?.session) {
+        navigate('/onboarding')
+        return
+      }
 
-    // 세션이 없으면 이메일 인증 대기 상태 → 안내 화면 표시
-    setEmailSent(true)
+      // 세션이 없으면 이메일 인증 대기
+      setEmailSent(true)
+
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setError(`연결 오류: ${msg}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const passwordStrong = password.length >= 8
@@ -70,7 +94,7 @@ export default function SignupPage() {
             <br />스팸 메일함도 확인해 보세요.
           </p>
           <div className="rounded-xl bg-primary-50 px-4 py-4 text-sm text-primary-800">
-            인증 완료 후 아래 로그인 버튼을 눌러주세요
+            인증 완료 후 아래 버튼을 눌러 로그인해 주세요
           </div>
           <Link
             to="/login"
@@ -99,6 +123,16 @@ export default function SignupPage() {
             무료로 가입하고 66일 건강 여정을 시작하세요
           </p>
         </div>
+
+        {!isSupabaseConfigured && (
+          <div className="mb-4 flex gap-2 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+            <span>
+              Supabase 환경 변수가 설정되지 않았습니다.
+              Vercel → Settings → Environment Variables를 확인해 주세요.
+            </span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -164,8 +198,9 @@ export default function SignupPage() {
           </div>
 
           {error && (
-            <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
-              {error}
+            <div className="flex gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+              <AlertTriangle size={15} className="mt-0.5 shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
