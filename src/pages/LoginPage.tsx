@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/lib/supabase'
 import { Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
@@ -18,12 +19,30 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
-    const { error } = await signIn(email, password)
+    const { data, error } = await signIn(email, password)
     setLoading(false)
 
     if (error) {
-      setError('이메일 또는 비밀번호가 올바르지 않습니다.')
+      if (error.message.includes('Email not confirmed')) {
+        setError('이메일 인증이 완료되지 않았습니다. 메일함을 확인해 주세요.')
+      } else {
+        setError('이메일 또는 비밀번호가 올바르지 않습니다.')
+      }
       return
+    }
+
+    // 신규 유저(health_goal 미설정)는 온보딩으로 이동
+    if (data.user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('health_goal')
+        .eq('id', data.user.id)
+        .maybeSingle()
+
+      if (!profile?.health_goal) {
+        navigate('/onboarding')
+        return
+      }
     }
 
     navigate('/dashboard')

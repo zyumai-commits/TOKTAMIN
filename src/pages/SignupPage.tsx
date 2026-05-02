@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import { Eye, EyeOff, CheckCircle2 } from 'lucide-react'
+import { Eye, EyeOff, CheckCircle2, Mail } from 'lucide-react'
 
 export default function SignupPage() {
   const { signUp } = useAuth()
@@ -13,6 +13,7 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -24,22 +25,69 @@ export default function SignupPage() {
     }
 
     setLoading(true)
-    const { error } = await signUp(email, password, fullName)
+    const { data, error } = await signUp(email, password, fullName)
     setLoading(false)
 
     if (error) {
-      if (error.message.includes('already registered')) {
+      if (error.message.includes('already registered') || error.message.includes('User already registered')) {
         setError('이미 사용 중인 이메일입니다.')
       } else {
-        setError('회원가입에 실패했습니다. 다시 시도해 주세요.')
+        setError(error.message ?? '회원가입에 실패했습니다. 다시 시도해 주세요.')
       }
       return
     }
 
-    navigate('/onboarding')
+    // 세션이 있으면 바로 온보딩으로 (이메일 인증 비활성화 상태)
+    if (data?.session) {
+      navigate('/onboarding')
+      return
+    }
+
+    // 세션이 없으면 이메일 인증 대기 상태 → 안내 화면 표시
+    setEmailSent(true)
   }
 
   const passwordStrong = password.length >= 8
+
+  // 이메일 인증 안내 화면
+  if (emailSent) {
+    return (
+      <div className="flex min-h-[calc(100vh-80px)] items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md text-center">
+          <div className="mb-6 flex justify-center">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary-100">
+              <Mail size={36} className="text-primary-900" />
+            </div>
+          </div>
+          <h1 className="mb-3 text-2xl font-extrabold text-gray-900">
+            이메일을 확인해 주세요
+          </h1>
+          <p className="mb-2 text-gray-600">
+            <strong>{email}</strong>로 인증 메일을 보냈습니다.
+          </p>
+          <p className="mb-8 text-sm text-gray-500">
+            메일함의 인증 링크를 클릭하면 회원가입이 완료됩니다.
+            <br />스팸 메일함도 확인해 보세요.
+          </p>
+          <div className="rounded-xl bg-primary-50 px-4 py-4 text-sm text-primary-800">
+            인증 완료 후 아래 로그인 버튼을 눌러주세요
+          </div>
+          <Link
+            to="/login"
+            className="mt-4 block w-full rounded-xl bg-primary-900 py-3.5 text-center text-sm font-bold text-white hover:bg-primary-800"
+          >
+            로그인 화면으로
+          </Link>
+          <button
+            onClick={() => setEmailSent(false)}
+            className="mt-3 text-sm text-gray-400 hover:text-gray-600"
+          >
+            다른 이메일로 다시 시도
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-[calc(100vh-80px)] items-center justify-center px-4 py-12">
