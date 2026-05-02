@@ -1,6 +1,5 @@
 import { cn } from '@/lib/utils'
 import { useHabitLogs } from '@/hooks/useHabitLogs'
-import { getToday } from '@/lib/utils'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 interface HabitCalendarProps {
