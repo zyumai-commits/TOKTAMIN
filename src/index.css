@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply antialiased text-gray-900 bg-white;
+    font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+    /* PWA 오버스크롤 방지 */
+    overscroll-behavior: none;
+  }
+
+  /* iOS 홈 인디케이터 영역 대응 */
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom), 8px);
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply rounded-xl bg-primary-900 px-6 py-3 text-sm font-bold text-white transition hover:bg-primary-800 active:scale-95 disabled:opacity-60;
+  }
+
+  .btn-outline {
+    @apply rounded-xl border-2 border-primary-900 px-6 py-3 text-sm font-bold text-primary-900 transition hover:bg-primary-50 active:scale-95;
+  }
+
+  .card {
+    @apply rounded-2xl bg-white shadow-sm;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-primary-900 focus:ring-2 focus:ring-primary-100;
+  }
+}
+
+/* 66일 챌린지 성공 애니메이션 */
+@keyframes progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+/* 습관 체크 애니메이션 */
+@keyframes checkPop {
+  0%   { transform: scale(0.8); }
+  50%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.check-pop {
+  animation: checkPop 0.2s ease-out;
+}
+
+/* PWA 설치 배너 숨김 처리 */
+@media (display-mode: standalone) {
+  .pwa-install-banner {
+    display: none;
+  }
+}
