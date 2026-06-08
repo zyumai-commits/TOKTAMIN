@@ -16,6 +16,7 @@ import SuccessPage from '@/pages/SuccessPage'
 import DashboardPage from '@/pages/DashboardPage'
 import HabitsPage from '@/pages/HabitsPage'
 import ProfilePage from '@/pages/ProfilePage'
+import TamagotchiPage from '@/pages/TamagotchiPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +37,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   return (
     <Routes>
+      {/* 다마고치 (인증 불필요) */}
+      <Route path="/tamagotchi" element={<TamagotchiPage />} />
+
       {/* 공개 라우트 */}
       <Route element={<RootLayout />}>
         <Route path="/"        element={<LandingPage />} />
